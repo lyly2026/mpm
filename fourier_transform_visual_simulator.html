@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fourier Transform Visual Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: { 400: '#22d3ee', 500: '#06b6d4', 900: '#164e63' },
+                        fuchsia: { 400: '#e879f9', 500: '#d946ef', 900: '#701a75' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b' }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 15px rgba(34, 211, 238, 0.4)',
+                        'neon-fuchsia': '0 0 15px rgba(232, 121, 249, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 1);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden select-none bg-slate-950 text-slate-100">
+
+    <header class="h-14 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 rounded-lg bg-gradient-to-tr from-cyan-500 to-fuchsia-500 text-white shadow-neon-cyan">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-wide bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-400 bg-clip-text text-transparent">
+                    FOURIER TRANSFORM LAB
+                </h1>
+                <p class="text-[10px] text-slate-400 code-font">Interactive Signal & Epicycle Simulator</p>
+            </div>
+        </div>
+
+        <!-- Mode Selector Tabs -->
+        <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <button id="tab-signal" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm">
+                <i data-lucide="waves" class="w-3.5 h-3.5"></i>
+                <span>Signal Analyzer (Time / Freq)</span>
+            </button>
+            <button id="tab-epicycles" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2">
+                <i data-lucide="orbit" class="w-3.5 h-3.5"></i>
+                <span>Epicycle Drawing (Synthesis)</span>
+            </button>
+        </div>
+
+        <!-- Right Side Quick Actions -->
+        <div class="flex items-center space-x-3">
+            <button id="audio-toggle" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center space-x-2">
+                <i data-lucide="volume-x" id="audio-icon" class="w-4 h-4 text-slate-400"></i>
+                <span id="audio-label">Audio Synth Off</span>
+            </button>
+            <button id="info-btn" class="p-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 transition" title="Educational Info">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 relative flex overflow-hidden">
+
+        <!-- MODE 1: SIGNAL VISUALIZER (Time -> Frequency) -->
+        <div id="mode-signal" class="w-full h-full flex flex-col lg:flex-row p-3 gap-3">
+            
+            <!-- Canvases Container (Left / Top) -->
+            <div class="flex-1 flex flex-col gap-3 min-h-0">
+                <!-- Time Domain Canvas Card -->
+                <div class="flex-1 bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 flex flex-col relative overflow-hidden backdrop-blur-sm">
+                    <div class="flex justify-between items-center mb-2 z-10">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                            <span class="text-xs font-semibold tracking-wider uppercase text-cyan-400 code-font">Time Domain Waveform - f(t)</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 code-font" id="time-stats">Sum of Component Waves</span>
+                    </div>
+                    <div class="flex-1 relative w-full h-full min-h-0">
+                        <canvas id="canvas-time" class="absolute inset-0 w-full h-full rounded-lg bg-slate-950/70 border border-slate-900"></canvas>
+                    </div>
+                </div>
+
+                <!-- Frequency Domain Canvas Card -->
+                <div class="flex-1 bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 flex flex-col relative overflow-hidden backdrop-blur-sm">
+                    <div class="flex justify-between items-center mb-2 z-10">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></div>
+                            <span class="text-xs font-semibold tracking-wider uppercase text-fuchsia-400 code-font">Frequency Domain Spectrum - |F(ω)|</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 code-font" id="peak-indicator">Dominant: -- Hz</span>
+                    </div>
+                    <div class="flex-1 relative w-full h-full min-h-0">
+                        <canvas id="canvas-freq" class="absolute inset-0 w-full h-full rounded-lg bg-slate-950/70 border border-slate-900"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signal Control Panel (Right Sidebar) -->
+            <div class="w-full lg:w-80 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col gap-4 overflow-y-auto shrink-0 backdrop-blur-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-1">Signal Generation</h2>
+                    <p class="text-xs text-slate-400">Select preset waveform or compose custom harmonics.</p>
+                </div>
+
+                <!-- Preset Signal Buttons -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-cyan-500/50 hover:bg-slate-800 transition text-left font-medium" data-preset="sine">
+                        <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400 inline mr-1"></i> Pure Sine
+                    </button>
+                    <button class="preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-cyan-500/50 hover:bg-slate-800 transition text-left font-medium" data-preset="square">
+                        <i data-lucide="square" class="w-3.5 h-3.5 text-fuchsia-400 inline mr-1"></i> Square
+                    </button>
+                    <button class="preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-cyan-500/50 hover:bg-slate-800 transition text-left font-medium" data-preset="sawtooth">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-400 inline mr-1"></i> Sawtooth
+                    </button>
+                    <button class="preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-cyan-500/50 hover:bg-slate-800 transition text-left font-medium" data-preset="triangle">
+                        <i data-lucide="triangle" class="w-3.5 h-3.5 text-emerald-400 inline mr-1"></i> Triangle
+                    </button>
+                    <button class="preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-cyan-500/50 hover:bg-slate-800 transition text-left font-medium col-span-2" data-preset="chord">
+                        <i data-lucide="music" class="w-3.5 h-3.5 text-cyan-400 inline mr-1"></i> Harmonic Chord (C-E-G)
+                    </button>
+                </div>
+
+                <hr class="border-slate-800 my-1">
+
+                <!-- Global Parameters -->
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Base Frequency (Fundamental)</span>
+                            <span class="code-font text-cyan-400" id="base-freq-val">440 Hz</span>
+                        </div>
+                        <input type="range" id="slider-base-freq" min="20" max="1000" value="440" class="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Noise Level</span>
+                            <span class="code-font text-fuchsia-400" id="noise-val">0%</span>
+                        </div>
+                        <input type="range" id="slider-noise" min="0" max="1" step="0.02" value="0" class="w-full accent-fuchsia-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <hr class="border-slate-800 my-1">
+
+                <!-- Individual Sine Components Synthesizer -->
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Custom Sine Waves</span>
+                    <button id="add-wave-btn" class="px-2 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs border border-cyan-500/40 transition flex items-center space-x-1">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Add Wave</span>
+                    </button>
+                </div>
+
+                <div id="wave-list" class="space-y-3 max-h-56 overflow-y-auto pr-1">
+                    <!-- Dynamic Wave Item Sliders populated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- MODE 2: EPICYCLE / FOURIER SERIES DRAWING VISUALIZER -->
+        <div id="mode-epicycles" class="w-full h-full hidden flex-col lg:flex-row p-3 gap-3">
+            
+            <!-- Drawing Canvas Workspace -->
+            <div class="flex-1 bg-slate-900/40 rounded-xl border border-slate-800/80 p-3 flex flex-col relative overflow-hidden backdrop-blur-sm min-h-0">
+                <div class="flex justify-between items-center mb-2 z-10">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></div>
+                        <span class="text-xs font-semibold tracking-wider uppercase text-fuchsia-400 code-font">Vector Epicycles Tracing</span>
+                    </div>
+                    <div class="flex space-x-2 text-xs">
+                        <span id="epicycle-info" class="text-slate-400 code-font">Epicycles: 50 | Vectors: 50</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="flex-1 relative w-full h-full min-h-0 cursor-crosshair">
+                    <canvas id="canvas-epicycle" class="absolute inset-0 w-full h-full rounded-lg bg-slate-950/80 border border-slate-900"></canvas>
+                    
+                    <!-- Canvas Drawing Overlay Hint -->
+                    <div id="draw-hint" class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-700/80 text-slate-300 px-4 py-1.5 rounded-full text-xs shadow-lg pointer-events-none flex items-center space-x-2">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5 text-fuchsia-400"></i>
+                        <span>Draw any continuous loop shape on canvas!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Epicycle Controls Panel -->
+            <div class="w-full lg:w-80 bg-slate-900/70 rounded-xl border border-slate-800 p-4 flex flex-col gap-4 overflow-y-auto shrink-0 backdrop-blur-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-1">Epicycle Settings</h2>
+                    <p class="text-xs text-slate-400">Decompose 2D paths into rotating complex vector circles.</p>
+                </div>
+
+                <!-- Shape Presets -->
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-2">Preset Vector Paths</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="epi-preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-fuchsia-500/50 hover:bg-slate-800 transition text-left font-medium" data-shape="trefoil">
+                            <i data-lucide="flower-2" class="w-3.5 h-3.5 text-fuchsia-400 inline mr-1"></i> Trefoil Knot
+                        </button>
+                        <button class="epi-preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-fuchsia-500/50 hover:bg-slate-800 transition text-left font-medium" data-shape="star">
+                            <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 inline mr-1"></i> Star
+                        </button>
+                        <button class="epi-preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-fuchsia-500/50 hover:bg-slate-800 transition text-left font-medium" data-shape="heart">
+                            <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400 inline mr-1"></i> Heart
+                        </button>
+                        <button class="epi-preset-btn px-2.5 py-1.5 rounded-lg text-xs border border-slate-700 bg-slate-800/60 hover:border-fuchsia-500/50 hover:bg-slate-800 transition text-left font-medium" data-shape="wave">
+                            <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400 inline mr-1"></i> Complex Wave
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-800 my-1">
+
+                <!-- Interactive Sliders -->
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Fourier Terms (Circles)</span>
+                            <span class="code-font text-fuchsia-400" id="num-circles-val">40</span>
+                        </div>
+                        <input type="range" id="slider-num-circles" min="1" max="150" value="40" class="w-full accent-fuchsia-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                        <p class="text-[10px] text-slate-500 mt-1">More circles = higher accuracy to original path.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Animation Speed</span>
+                            <span class="code-font text-cyan-400" id="epi-speed-val">1.0x</span>
+                        </div>
+                        <input type="range" id="slider-epi-speed" min="0.1" max="3" step="0.1" value="1.0" class="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">Circle Opacity</span>
+                            <span class="code-font text-amber-400" id="circle-opacity-val">30%</span>
+                        </div>
+                        <input type="range" id="slider-circle-opacity" min="0.05" max="0.8" step="0.05" value="0.3" class="w-full accent-amber-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <hr class="border-slate-800 my-1">
+
+                <!-- Action Buttons -->
+                <div class="flex gap-2">
+                    <button id="clear-canvas-btn" class="flex-1 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center justify-center space-x-1">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Clear & Draw</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Info Modal -->
+        <div id="info-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+                <button id="close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                        <i data-lucide="book-open" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-100">Understanding Fourier Transform</h3>
+                </div>
+
+                <div class="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+                    <p>
+                        <strong class="text-cyan-400">What is it?</strong> The Fourier Transform is a fundamental mathematical function that converts a signal from its original domain (usually time or space) into the <span class="text-fuchsia-400">Frequency Domain</span>.
+                    </p>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 code-font text-[11px] text-cyan-300">
+                        f(t) = ∑ [ A_k * sin(2π * f_k * t + φ_k) ]
+                    </div>
+                    <p>
+                        <strong class="text-fuchsia-400">1. Signal Decomposition:</strong> Any complex waveform can be broken down into an exact sum of pure sine waves with different frequencies, amplitudes, and phases.
+                    </p>
+                    <p>
+                        <strong class="text-amber-400">2. Epicycles & Complex Numbers:</strong> In 2D space, Fourier series represent paths as sum of rotating complex vectors ($e^{i \omega t}$). Connecting these rotating circles end-to-end forms epicycles that can trace any arbitrary continuous drawing!
+                    </p>
+                </div>
+
+                <button id="modal-got-it" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white font-semibold text-xs tracking-wide shadow-neon-cyan hover:opacity-95 transition">
+                    Got It! Let's Explore
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /* Initialize Lucide Icons */
+        lucide.createIcons();
+
+        /* ====================================================================
+           1. APP STATE & GLOBAL CONSTANTS
+           ==================================================================== */
+        const state = {
+            currentMode: 'signal', // 'signal' | 'epicycles'
+            
+            // Signal Domain State
+            baseFrequency: 440,
+            noiseLevel: 0,
+            waves: [
+                { freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true },
+                { freqMultiplier: 2, amp: 0.5, phase: 0, enabled: true },
+                { freqMultiplier: 3, amp: 0.25, phase: 0, enabled: true }
+            ],
+            audioEnabled: false,
+
+            // Epicycle Domain State
+            numCircles: 40,
+            epiSpeed: 1.0,
+            circleOpacity: 0.3,
+            drawingPoints: [],
+            isDrawing: false,
+            fourierX: [],
+            epiTime: 0,
+            epiPath: []
+        };
+
+        // Web Audio API context
+        let audioCtx = null;
+        let masterGain = null;
+        let activeOscillators = [];
+
+        /* ====================================================================
+           2. DOM ELEMENTS REF
+           ==================================================================== */
+        const tabSignal = document.getElementById('tab-signal');
+        const tabEpicycles = document.getElementById('tab-epicycles');
+        const modeSignal = document.getElementById('mode-signal');
+        const modeEpicycles = document.getElementById('mode-epicycles');
+
+        const canvasTime = document.getElementById('canvas-time');
+        const canvasFreq = document.getElementById('canvas-freq');
+        const canvasEpi = document.getElementById('canvas-epicycle');
+
+        const ctxTime = canvasTime.getContext('2d');
+        const ctxFreq = canvasFreq.getContext('2d');
+        const ctxEpi = canvasEpi.getContext('2d');
+
+        /* ====================================================================
+           3. CANVAS RESIZE & UTILS
+           ==================================================================== */
+        function resizeCanvases() {
+            [canvasTime, canvasFreq, canvasEpi].forEach(canvas => {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+            });
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        /* ====================================================================
+           4. FOURIER MATHEMATICAL ALGORITHMS
+           ==================================================================== */
+        /**
+         * Discrete Fourier Transform (DFT) for 1D Signal
+         * Transforms a 1D sequence of scalar time samples into frequency bins.
+         */
+        function computeDFT1D(timeData) {
+            const N = timeData.length;
+            const spectrum = [];
+            const halfN = Math.floor(N / 2);
+
+            for (let k = 0; k < halfN; k++) {
+                let re = 0;
+                let im = 0;
+                for (let n = 0; n < N; n++) {
+                    const phi = (2 * Math.PI * k * n) / N;
+                    re += timeData[n] * Math.cos(phi);
+                    im -= timeData[n] * Math.sin(phi);
+                }
+                re = re / N;
+                im = im / N;
+
+                const freq = k;
+                const amp = Math.sqrt(re * re + im * im) * 2;
+                const phase = Math.atan2(im, re);
+
+                spectrum.push({ freq, amp, phase, re, im });
+            }
+            return spectrum;
+        }
+
+        /**
+         * Discrete Fourier Transform (DFT) for Complex 2D Epicycles
+         * Converts 2D points (x, y) into rotating complex exponential vectors.
+         */
+        function computeDFT2D(points) {
+            const X = [];
+            const N = points.length;
+            if (N === 0) return X;
+
+            for (let k = 0; k < N; k++) {
+                let re = 0;
+                let im = 0;
+
+                for (let n = 0; n < N; n++) {
+                    const phi = (2 * Math.PI * k * n) / N;
+                    re += points[n].x * Math.cos(phi) + points[n].y * Math.sin(phi);
+                    im += points[n].y * Math.cos(phi) - points[n].x * Math.sin(phi);
+                }
+                re = re / N;
+                im = im / N;
+
+                const freq = k;
+                const amp = Math.sqrt(re * re + im * im);
+                const phase = Math.atan2(im, re);
+
+                X.push({ re, im, freq, amp, phase });
+            }
+
+            // Sort terms by amplitude (descending) so dominant circles render first
+            X.sort((a, b) => b.amp - a.amp);
+            return X;
+        }
+
+        /* ====================================================================
+           5. WEB AUDIO SYNTHESIZER
+           ==================================================================== */
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.setValueAtTime(0.08, audioCtx.currentTime); // Soft volume
+                masterGain.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function updateAudioNodes() {
+            if (!state.audioEnabled || !audioCtx) return;
+
+            // Stop existing oscillators
+            activeOscillators.forEach(osc => osc.stop());
+            activeOscillators = [];
+
+            state.waves.forEach(wave => {
+                if (!wave.enabled || wave.amp <= 0) return;
+
+                const osc = audioCtx.createOscillator();
+                const waveGain = audioCtx.createGain();
+
+                const targetFreq = state.baseFrequency * wave.freqMultiplier;
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(targetFreq, audioCtx.currentTime);
+
+                waveGain.gain.setValueAtTime(wave.amp, audioCtx.currentTime);
+
+                osc.connect(waveGain);
+                waveGain.connect(masterGain);
+
+                osc.start();
+                activeOscillators.push(osc);
+            });
+        }
+
+        document.getElementById('audio-toggle').addEventListener('click', () => {
+            state.audioEnabled = !state.audioEnabled;
+            const icon = document.getElementById('audio-icon');
+            const label = document.getElementById('audio-label');
+
+            if (state.audioEnabled) {
+                initAudio();
+                updateAudioNodes();
+                icon.setAttribute('data-lucide', 'volume-2');
+                icon.classList.remove('text-slate-400');
+                icon.classList.add('text-cyan-400');
+                label.textContent = 'Audio Synth On';
+            } else {
+                activeOscillators.forEach(osc => osc.stop());
+                activeOscillators = [];
+                icon.setAttribute('data-lucide', 'volume-x');
+                icon.classList.remove('text-cyan-400');
+                icon.classList.add('text-slate-400');
+                label.textContent = 'Audio Synth Off';
+            }
+            lucide.createIcons();
+        });
+
+        /* ====================================================================
+           6. SIGNAL DOMAIN RENDERING & INTERACTION
+           ==================================================================== */
+        const waveListEl = document.getElementById('wave-list');
+
+        function renderWaveControls() {
+            waveListEl.innerHTML = '';
+            state.waves.forEach((wave, idx) => {
+                const item = document.createElement('div');
+                item.className = 'bg-slate-950/80 p-2.5 rounded-lg border border-slate-800 space-y-2';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-slate-200">Harmonic #${idx + 1} (${wave.freqMultiplier}x)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" ${wave.enabled ? 'checked' : ''} class="wave-enable accent-cyan-400 cursor-pointer" data-idx="${idx}">
+                            ${idx > 0 ? `<button class="text-slate-500 hover:text-rose-400 remove-wave" data-idx="${idx}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[11px] text-slate-400 mb-0.5">
+                            <span>Amplitude</span>
+                            <span class="code-font text-cyan-400">${wave.amp.toFixed(2)}</span>
+                        </div>
+                        <input type="range" min="0" max="1" step="0.05" value="${wave.amp}" class="wave-amp w-full accent-cyan-400 h-1 bg-slate-800 rounded cursor-pointer" data-idx="${idx}">
+                    </div>
+                `;
+                waveListEl.appendChild(item);
+            });
+            lucide.createIcons();
+
+            // Bind Event Listeners
+            document.querySelectorAll('.wave-enable').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.dataset.idx);
+                    state.waves[idx].enabled = e.target.checked;
+                    updateAudioNodes();
+                });
+            });
+
+            document.querySelectorAll('.wave-amp').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.dataset.idx);
+                    state.waves[idx].amp = parseFloat(e.target.value);
+                    e.target.previousElementSibling.children[1].textContent = state.waves[idx].amp.toFixed(2);
+                    updateAudioNodes();
+                });
+            });
+
+            document.querySelectorAll('.remove-wave').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.dataset.idx);
+                    state.waves.splice(idx, 1);
+                    renderWaveControls();
+                    updateAudioNodes();
+                });
+            });
+        }
+
+        document.getElementById('add-wave-btn').addEventListener('click', () => {
+            const nextMult = state.waves.length + 1;
+            state.waves.push({ freqMultiplier: nextMult, amp: 0.5, phase: 0, enabled: true });
+            renderWaveControls();
+            updateAudioNodes();
+        });
+
+        // Sliders
+        document.getElementById('slider-base-freq').addEventListener('input', (e) => {
+            state.baseFrequency = parseInt(e.target.value);
+            document.getElementById('base-freq-val').textContent = `${state.baseFrequency} Hz`;
+            updateAudioNodes();
+        });
+
+        document.getElementById('slider-noise').addEventListener('input', (e) => {
+            state.noiseLevel = parseFloat(e.target.value);
+            document.getElementById('noise-val').textContent = `${Math.round(state.noiseLevel * 100)}%`;
+        });
+
+        // Presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = e.currentTarget.dataset.preset;
+                if (preset === 'sine') {
+                    state.waves = [{ freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true }];
+                } else if (preset === 'square') {
+                    state.waves = [
+                        { freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true },
+                        { freqMultiplier: 3, amp: 0.33, phase: 0, enabled: true },
+                        { freqMultiplier: 5, amp: 0.20, phase: 0, enabled: true },
+                        { freqMultiplier: 7, amp: 0.14, phase: 0, enabled: true }
+                    ];
+                } else if (preset === 'sawtooth') {
+                    state.waves = [
+                        { freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true },
+                        { freqMultiplier: 2, amp: 0.50, phase: 0, enabled: true },
+                        { freqMultiplier: 3, amp: 0.33, phase: 0, enabled: true },
+                        { freqMultiplier: 4, amp: 0.25, phase: 0, enabled: true }
+                    ];
+                } else if (preset === 'triangle') {
+                    state.waves = [
+                        { freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true },
+                        { freqMultiplier: 3, amp: 0.11, phase: 0, enabled: true },
+                        { freqMultiplier: 5, amp: 0.04, phase: 0, enabled: true }
+                    ];
+                } else if (preset === 'chord') {
+                    state.waves = [
+                        { freqMultiplier: 1, amp: 1.0, phase: 0, enabled: true },    // C (Root)
+                        { freqMultiplier: 1.25, amp: 0.8, phase: 0, enabled: true }, // E (Major 3rd)
+                        { freqMultiplier: 1.5, amp: 0.7, phase: 0, enabled: true }   // G (Fifth)
+                    ];
+                }
+                renderWaveControls();
+                updateAudioNodes();
+            });
+        });
+
+        function renderSignalDomain(timestamp) {
+            const widthT = canvasTime.width;
+            const heightT = canvasTime.height;
+            const widthF = canvasFreq.width;
+            const heightF = canvasFreq.height;
+
+            // Clear Canvases
+            ctxTime.clearRect(0, 0, widthT, heightT);
+            ctxFreq.clearRect(0, 0, widthF, heightF);
+
+            // 1. Generate Signal Samples for rendering
+            const sampleCount = 256;
+            const timeSamples = new Array(sampleCount);
+            const timeStep = (Math.PI * 4) / sampleCount;
+            const timeOffset = timestamp * 0.003;
+
+            for (let i = 0; i < sampleCount; i++) {
+                let y = 0;
+                const t = i * timeStep + timeOffset;
+
+                state.waves.forEach(w => {
+                    if (w.enabled) {
+                        y += w.amp * Math.sin(w.freqMultiplier * t + w.phase);
+                    }
+                });
+
+                if (state.noiseLevel > 0) {
+                    y += (Math.random() * 2 - 1) * state.noiseLevel;
+                }
+
+                timeSamples[i] = y;
+            }
+
+            // 2. Draw Time Domain Oscilloscope Line
+            ctxTime.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+            ctxTime.lineWidth = 1;
+            ctxTime.beginPath();
+            ctxTime.moveTo(0, heightT / 2);
+            ctxTime.lineTo(widthT, heightT / 2);
+            ctxTime.stroke();
+
+            ctxTime.strokeStyle = '#22d3ee';
+            ctxTime.shadowColor = '#22d3ee';
+            ctxTime.shadowBlur = 8;
+            ctxTime.lineWidth = 2.5;
+            ctxTime.beginPath();
+
+            const dx = widthT / (sampleCount - 1);
+            const centerY = heightT / 2;
+            const scaleY = heightT * 0.22;
+
+            for (let i = 0; i < sampleCount; i++) {
+                const px = i * dx;
+                const py = centerY - timeSamples[i] * scaleY;
+                if (i === 0) ctxTime.moveTo(px, py);
+                else ctxTime.lineTo(px, py);
+            }
+            ctxTime.stroke();
+            ctxTime.shadowBlur = 0; // Reset shadow
+
+            // 3. Compute Real-time FFT/DFT Spectrum
+            const spectrum = computeDFT1D(timeSamples);
+
+            // 4. Draw Frequency Domain Spectrum Bars
+            const barCount = spectrum.length;
+            const barWidth = (widthF / barCount) * 0.7;
+            const gap = (widthF / barCount) * 0.3;
+
+            let maxAmp = 0;
+            let dominantFreq = 0;
+
+            for (let i = 0; i < barCount; i++) {
+                const item = spectrum[i];
+                if (item.amp > maxAmp) {
+                    maxAmp = item.amp;
+                    dominantFreq = i;
+                }
+
+                const px = i * (barWidth + gap) + gap / 2;
+                const barHeight = Math.min(heightF - 20, item.amp * heightF * 0.4);
+                const py = heightF - barHeight - 10;
+
+                // Gradient for bars
+                const grad = ctxFreq.createLinearGradient(0, heightF, 0, py);
+                grad.addColorStop(0, 'rgba(217, 70, 239, 0.2)');
+                grad.addColorStop(1, '#e879f9');
+
+                ctxFreq.fillStyle = grad;
+                ctxFreq.beginPath();
+                ctxFreq.roundRect(px, py, barWidth, barHeight, [4, 4, 0, 0]);
+                ctxFreq.fill();
+
+                // Peak glowing cap
+                if (item.amp > 0.05) {
+                    ctxFreq.fillStyle = '#fbbf24';
+                    ctxFreq.shadowColor = '#fbbf24';
+                    ctxFreq.shadowBlur = 6;
+                    ctxFreq.fillRect(px, py - 2, barWidth, 3);
+                    ctxFreq.shadowBlur = 0;
+                }
+            }
+
+            // Update DOM Stats
+            const estimatedHz = Math.round(state.baseFrequency * (dominantFreq / 2 || 1));
+            document.getElementById('peak-indicator').textContent = `Dominant Peak: ~${estimatedHz} Hz`;
+        }
+
+        /* ====================================================================
+           7. EPICYCLE / VECTOR TRACING RENDERING & INTERACTION
+           ==================================================================== */
+        const sliderNumCircles = document.getElementById('slider-num-circles');
+        const sliderEpiSpeed = document.getElementById('slider-epi-speed');
+        const sliderCircleOpacity = document.getElementById('slider-circle-opacity');
+
+        sliderNumCircles.addEventListener('input', (e) => {
+            state.numCircles = parseInt(e.target.value);
+            document.getElementById('num-circles-val').textContent = state.numCircles;
+            updateEpicycleInfo();
+        });
+
+        sliderEpiSpeed.addEventListener('input', (e) => {
+            state.epiSpeed = parseFloat(e.target.value);
+            document.getElementById('epi-speed-val').textContent = `${state.epiSpeed.toFixed(1)}x`;
+        });
+
+        sliderCircleOpacity.addEventListener('input', (e) => {
+            state.circleOpacity = parseFloat(e.target.value);
+            document.getElementById('circle-opacity-val').textContent = `${Math.round(state.circleOpacity * 100)}%`;
+        });
+
+        function updateEpicycleInfo() {
+            document.getElementById('epicycle-info').textContent = 
+                `Circles: ${Math.min(state.numCircles, state.fourierX.length)} / ${state.fourierX.length}`;
+        }
+
+        // Preset Epicycle Vector Shapes
+        function generatePresetShape(type) {
+            const points = [];
+            const N = 200;
+            for (let i = 0; i < N; i++) {
+                const t = (i / N) * Math.PI * 2;
+                let x = 0, y = 0;
+
+                if (type === 'trefoil') {
+                    x = Math.sin(t) + 2 * Math.sin(2 * t);
+                    y = Math.cos(t) - 2 * Math.cos(2 * t);
+                    x *= 60; y *= 60;
+                } else if (type === 'star') {
+                    const r = 120 + 40 * Math.sin(5 * t);
+                    x = r * Math.cos(t);
+                    y = r * Math.sin(t);
+                } else if (type === 'heart') {
+                    x = 16 * Math.pow(Math.sin(t), 3);
+                    y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                    x *= 10; y *= 10;
+                } else if (type === 'wave') {
+                    x = (t - Math.PI) * 70;
+                    y = Math.sin(3 * t) * 60 + Math.cos(5 * t) * 30;
+                }
+                points.push({ x, y });
+            }
+            return points;
+        }
+
+        function loadPresetShape(shapeName) {
+            state.drawingPoints = generatePresetShape(shapeName);
+            state.fourierX = computeDFT2D(state.drawingPoints);
+            state.epiTime = 0;
+            state.epiPath = [];
+            updateEpicycleInfo();
+        }
+
+        document.querySelectorAll('.epi-preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                loadPresetShape(e.currentTarget.dataset.shape);
+            });
+        });
+
+        document.getElementById('clear-canvas-btn').addEventListener('click', () => {
+            state.drawingPoints = [];
+            state.fourierX = [];
+            state.epiPath = [];
+            document.getElementById('draw-hint').classList.remove('hidden');
+            updateEpicycleInfo();
+        });
+
+        // Interactive Canvas Drawing Listeners
+        function getCanvasMousePos(e) {
+            const rect = canvasEpi.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const cx = (canvasEpi.width / dpr) / 2;
+            const cy = (canvasEpi.height / dpr) / 2;
+            return {
+                x: (e.clientX - rect.left) - cx,
+                y: (e.clientY - rect.top) - cy
+            };
+        }
+
+        canvasEpi.addEventListener('mousedown', (e) => {
+            state.isDrawing = true;
+            state.drawingPoints = [];
+            state.fourierX = [];
+            state.epiPath = [];
+            const pos = getCanvasMousePos(e);
+            state.drawingPoints.push(pos);
+            document.getElementById('draw-hint').classList.add('hidden');
+        });
+
+        canvasEpi.addEventListener('mousemove', (e) => {
+            if (!state.isDrawing) return;
+            const pos = getCanvasMousePos(e);
+            state.drawingPoints.push(pos);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (state.isDrawing) {
+                state.isDrawing = false;
+                if (state.drawingPoints.length > 5) {
+                    state.fourierX = computeDFT2D(state.drawingPoints);
+                    state.epiTime = 0;
+                    state.epiPath = [];
+                    updateEpicycleInfo();
+                }
+            }
+        });
+
+        // Touch Support for Mobile / Tablets
+        canvasEpi.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                state.isDrawing = true;
+                state.drawingPoints = [];
+                state.fourierX = [];
+                state.epiPath = [];
+                const touch = e.touches[0];
+                const rect = canvasEpi.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                state.drawingPoints.push({
+                    x: (touch.clientX - rect.left) - (canvasEpi.width / dpr) / 2,
+                    y: (touch.clientY - rect.top) - (canvasEpi.height / dpr) / 2
+                });
+                document.getElementById('draw-hint').classList.add('hidden');
+            }
+        });
+
+        canvasEpi.addEventListener('touchmove', (e) => {
+            if (state.isDrawing && e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = canvasEpi.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                state.drawingPoints.push({
+                    x: (touch.clientX - rect.left) - (canvasEpi.width / dpr) / 2,
+                    y: (touch.clientY - rect.top) - (canvasEpi.height / dpr) / 2
+                });
+            }
+        });
+
+        canvasEpi.addEventListener('touchend', () => {
+            if (state.isDrawing) {
+                state.isDrawing = false;
+                if (state.drawingPoints.length > 5) {
+                    state.fourierX = computeDFT2D(state.drawingPoints);
+                    state.epiTime = 0;
+                    state.epiPath = [];
+                    updateEpicycleInfo();
+                }
+            }
+        });
+
+        function renderEpicycles() {
+            const width = canvasEpi.width;
+            const height = canvasEpi.height;
+            const dpr = window.devicePixelRatio || 1;
+
+            ctxEpi.clearRect(0, 0, width, height);
+
+            ctxEpi.save();
+            ctxEpi.scale(dpr, dpr);
+            ctxEpi.translate((width / dpr) / 2, (height / dpr) / 2);
+
+            // 1. If User is currently actively drawing
+            if (state.isDrawing) {
+                ctxEpi.strokeStyle = '#e879f9';
+                ctxEpi.lineWidth = 2;
+                ctxEpi.beginPath();
+                for (let i = 0; i < state.drawingPoints.length; i++) {
+                    const pt = state.drawingPoints[i];
+                    if (i === 0) ctxEpi.moveTo(pt.x, pt.y);
+                    else ctxEpi.lineTo(pt.x, pt.y);
+                }
+                ctxEpi.stroke();
+                ctxEpi.restore();
+                return;
+            }
+
+            // 2. Render Epicycle Chain
+            if (state.fourierX.length > 0) {
+                let x = 0;
+                let y = 0;
+
+                const circleLimit = Math.min(state.numCircles, state.fourierX.length);
+
+                for (let i = 0; i < circleLimit; i++) {
+                    const prevX = x;
+                    const prevY = y;
+                    const f = state.fourierX[i];
+                    const radius = f.amp;
+                    const angle = f.freq * state.epiTime + f.phase;
+
+                    x += radius * Math.cos(angle);
+                    y += radius * Math.sin(angle);
+
+                    // Draw Orbit Circle
+                    ctxEpi.strokeStyle = `rgba(232, 121, 249, ${state.circleOpacity})`;
+                    ctxEpi.lineWidth = 1;
+                    ctxEpi.beginPath();
+                    ctxEpi.arc(prevX, prevY, radius, 0, Math.PI * 2);
+                    ctxEpi.stroke();
+
+                    // Draw Rotating Vector Line
+                    ctxEpi.strokeStyle = 'rgba(34, 211, 238, 0.6)';
+                    ctxEpi.beginPath();
+                    ctxEpi.moveTo(prevX, prevY);
+                    ctxEpi.lineTo(x, y);
+                    ctxEpi.stroke();
+                }
+
+                // Add current endpoint to path trajectory
+                state.epiPath.unshift({ x, y });
+                if (state.epiPath.length > 800) {
+                    state.epiPath.pop();
+                }
+
+                // Draw Vector Tip Marker
+                ctxEpi.fillStyle = '#fbbf24';
+                ctxEpi.shadowColor = '#fbbf24';
+                ctxEpi.shadowBlur = 10;
+                ctxEpi.beginPath();
+                ctxEpi.arc(x, y, 4, 0, Math.PI * 2);
+                ctxEpi.fill();
+                ctxEpi.shadowBlur = 0;
+
+                // Draw Continuous Traced Fourier Output Path
+                ctxEpi.strokeStyle = '#22d3ee';
+                ctxEpi.lineWidth = 2.5;
+                ctxEpi.shadowColor = '#22d3ee';
+                ctxEpi.shadowBlur = 8;
+                ctxEpi.beginPath();
+                for (let i = 0; i < state.epiPath.length; i++) {
+                    if (i === 0) ctxEpi.moveTo(state.epiPath[i].x, state.epiPath[i].y);
+                    else ctxEpi.lineTo(state.epiPath[i].x, state.epiPath[i].y);
+                }
+                ctxEpi.stroke();
+                ctxEpi.shadowBlur = 0;
+
+                // Advance Epicycle Clock Time
+                const dt = (Math.PI * 2) / state.fourierX.length;
+                state.epiTime += dt * state.epiSpeed;
+            }
+
+            ctxEpi.restore();
+        }
+
+        /* ====================================================================
+           8. MAIN ANIMATION LOOP & TAB NAVIGATION
+           ==================================================================== */
+        function mainLoop(timestamp) {
+            if (state.currentMode === 'signal') {
+                renderSignalDomain(timestamp);
+            } else if (state.currentMode === 'epicycles') {
+                renderEpicycles();
+            }
+            requestAnimationFrame(mainLoop);
+        }
+
+        // Tab Switchers
+        tabSignal.addEventListener('click', () => {
+            state.currentMode = 'signal';
+            tabSignal.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm';
+            tabEpicycles.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2';
+            modeSignal.classList.remove('hidden');
+            modeEpicycles.classList.add('hidden');
+            modeEpicycles.classList.remove('flex');
+            resizeCanvases();
+        });
+
+        tabEpicycles.addEventListener('click', () => {
+            state.currentMode = 'epicycles';
+            tabEpicycles.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-sm';
+            tabSignal.className = 'px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2';
+            modeSignal.classList.add('hidden');
+            modeEpicycles.classList.remove('hidden');
+            modeEpicycles.classList.add('flex');
+            resizeCanvases();
+
+            // Load default shape if empty
+            if (state.fourierX.length === 0) {
+                loadPresetShape('trefoil');
+            }
+        });
+
+        // Info Modal Handlers
+        const infoModal = document.getElementById('info-modal');
+        document.getElementById('info-btn').addEventListener('click', () => infoModal.classList.remove('hidden'));
+        document.getElementById('close-modal').addEventListener('click', () => infoModal.classList.add('hidden'));
+        document.getElementById('modal-got-it').addEventListener('click', () => infoModal.classList.add('hidden'));
+
+        // Initialization
+        renderWaveControls();
+        requestAnimationFrame(mainLoop);
+    </script>
+</body>
+</html>
