@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Physics Simulators</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-hover: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+        }
+
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            background-color: var(--card-hover);
+            border-color: var(--accent);
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .card p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card .link-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 0.875rem;
+            border-top: 1px solid var(--border);
+            padding-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Mathematical Physics Simulators</h1>
+            <p class="subtitle">Interactive web visualizers for core mathematical and physical methods.</p>
+        </header>
+
+        <main class="simulator-grid">
+            
+            <!-- Simulator Link 1 -->
+            <a href="fourier/" class="card">
+                <div>
+                    <h2>Fourier Transform</h2>
+                    <p>Decomposition of signals into sine waves, harmonics, and epicycle visualizations.</p>
+                </div>
+                <span class="link-text">Launch Simulator &rarr;</span>
+            </a>
+
+            <!-- Simulator Link 2 -->
+            <a href="laplace/" class="card">
+                <div>
+                    <h2>Laplace Transform</h2>
+                    <p>Interactive s-plane pole-zero plots and corresponding time-domain step responses.</p>
+                </div>
+                <span class="link-text">Launch Simulator &rarr;</span>
+            </a>
+
+            <!-- Simulator Link 3 -->
+            <a href="wave-equation/" class="card">
+                <div>
+                    <h2>1D Wave PDE</h2>
+                    <p>Simulation of pluckable string dynamics using finite-difference numerical integration.</p>
+                </div>
+                <span class="link-text">Launch Simulator &rarr;</span>
+            </a>
+
+            <!-- Simulator Link 4 -->
+            <a href="heat-equation/" class="card">
+                <div>
+                    <h2>2D Heat Diffusion</h2>
+                    <p>Thermal dissipation over time using a 5-point Laplacian grid stencil.</p>
+                </div>
+                <span class="link-text">Launch Simulator &rarr;</span>
+            </a>
+
+        </main>
+
+        <footer>
+            <p>Hosted on GitHub Pages</p>
+        </footer>
+    </div>
+
+</body>
+</html>
